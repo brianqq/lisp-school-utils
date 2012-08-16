@@ -5,6 +5,7 @@
 (let ((table-scan (cl-ppcre:create-scanner "(?<=<td>).*?(?=</td>)"
 						    :single-line-mode t)))
   (defun wiki-scrape (element property)
+    "This function scrapes the wikipedia page for `element` for the entry in wikipedia's html table that comes after `property`"
     (let ((page (drakma:http-request
 		 (format nil
 			 "http://en.wikipedia.org/wiki/~@(~S~)"
