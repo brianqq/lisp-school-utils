@@ -13,10 +13,12 @@
       (cl-ppcre:scan-to-strings table-scan page
 				:start (cl-ppcre:scan property page)))))
 
-(defmemo get-mass (elem)
+(defmemo:defmemo get-mass (elem)
+  "Scrapes wikipedia for the atomic mass of `elem`"
     (read-from-string (wiki-scrape 'elem "Standard atomic weight")))
 
-(defmemo get-ion (elem)
+(defmemo:defmemo get-oxstate (elem)
+  "Scrapes wikipedia for the "
   (mapcar #'read-from-string
 	  (cl-ppcre:all-matches-as-strings
 	   "-?\\d+\\.?\\d*"
