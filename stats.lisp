@@ -1,38 +1,23 @@
-(defun avg (thing &key (add-step #'identity)
-			     (count-step (lambda (_)
-					   (declare (ignorable _))
-					   1)))
+(defun avg (thing &key
+		    (add-step #'identity)
+		    (count-step (lambda (_)
+				  (declare (ignorable _))
+				  1)))
+  "Computes the average of `thing`. By default `thing` is assumed to be a list of numbers, in which case we compute sum/length. The keyword arguments can be used to change this behavior."
 	   (do ((list thing (cdr list))
 		(counter 0 (+ (funcall count-step (car list))
 			      counter))
 		(sum 0 (+ sum (funcall add-step (car list)))))
 	       ((endp list) (/ sum counter))))
 
-;;Ideally there should be some kind of dsl that goes from
-;;pseudomath definitions into list operators that let you
-;;swap in alternatives to the basic functions like average
-;(defop variance (E (expt (- x Ex) 2)))
 
-
-(defun compose (&rest fns)
-  (lambda (x)
-    (reduce #'funcall fns
-	    :initial-value x
-	    :from-end t)))
-
-(defun curry (fn &rest args)
-  (lambda (&rest more-args)
-    (apply fn (append args more-args))))
-
-
-
-;;TODO these are really shitty keyword args
 (defun variance (list &key
 			(avg #'avg)
 			(take #'identity)
 			(put (lambda (_ x)
 			       (declare (ignorable _))
 			       x)))
+  "Computes variance of `list`. `avg` is the function we use to calculate an average. `take` and `put` are used to change how we process list---take takes list and returns a value (for example `(cdr list)`) and put puts this value back into a data structure that we finally call `avg` on."
   (let ((mean (funcall avg list)))
     (values
      (funcall avg
@@ -42,9 +27,11 @@
      mean)))
 
 (defun e-fn-p (list)
+  "Is `(car list)` E?"
   (eq (car list) 'e))
 
 (defun pull-e-fn (list)
+  "Returns all the lists in some tree whos car is E"
   (let ((acc))
     (labels ((pull-helper (list)
 	       (cond ((atom list) nil)
@@ -54,6 +41,7 @@
       acc)))
 
 (defun e-fn-replace (code gensyms)
+  "Replaces an e-fn with a corresponding element of `gensyms`"
   (assert (= (length gensyms)
 	     (length (pull-e-fn code))))
   (let ((gensyms gensyms))
@@ -66,16 +54,20 @@
 
 
 (defmacro with-gensyms (names &body body)
+  "Binds each element in names to a gensym"
   `(let (,@(loop for x in names
 	      collect `(,x (gensym ,(format nil "~a" x)))))
      ,@body))
 
-;;this got really messy really fast
+
 (defmacro E (&rest command)
+  "Implements a DSL for writing formulas using expected value. Currently you can take the expected value of a function of one variable, `x?`. 
+\(E x?) => a function that takes the average of its parameter
+\(E (expt (- x? (E x?)))) => a function that takes the variance of its parameter. "
   (with-gensyms (name list)
     (let* ((elist (pull-e-fn command))
 	   (gensyms (loop for x in elist collect
-			 (gensym (format nil "~a" x))))) ;;;I still think hashmaps would be better
+			 (gensym (format nil "~a" x))))) 
       (let ((command (e-fn-replace command gensyms)))
 	`(lambda (,list &key
 		     (avg #'avg)
@@ -90,6 +82,10 @@
 					:avg avg
 					:take take
 					:put put))))
+	     ;;We do this so that nested uses of E work properly---
+	     ;;(E (expt (- x? (E x?)) 2)) should spit out a function that
+	     ;;computes variance, which means inner calls to E must
+	     ;;be evaluated first and applied to `list`
 	     (values
 	      (funcall avg
 		       (loop for ,name in ,list collect
@@ -97,10 +93,6 @@
 				     (let ((x? (funcall take ,name)))
 				       (declare (ignorable x?))
 				       ,@command))))
-	      ; (list
-	      ;	      ,@(loop for sym in gensyms
-	;	   for name in elist collect
-	;	     `(cons ',name ,sym)
 	      ,@(loop for sym in gensyms collect sym))))))))
 
 (defun variance (list &key
@@ -110,6 +102,7 @@
 			 (lambda (_ x)
 			   (declare (ignorable _))
 			   x)))
+  "Computes variance of `list`. `avg` is the function we use to calculate an average. `take` and `put` are used to change how we process list---take takes list and returns a value (for example `(cdr list)`) and put puts this value back into a data structure that we finally call `avg` on."
   (funcall (e (expt
 	       (- x? (e x?))
 	       2))
