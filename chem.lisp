@@ -2,6 +2,8 @@
 (ql:quickload 'drakma)
 (ql:quickload 'cl-ppcre)
 
+(defconstant +avogadro+ 6.0221415e+23)
+
 (let ((table-scan (cl-ppcre:create-scanner "(?<=<td>).*?(?=</td>)"
 						    :single-line-mode t)))
   (defun wiki-scrape (element property)
@@ -25,3 +27,22 @@
 	   (cl-ppcre:regex-replace-all "(<.*?>|\\[.*?\\]|\\(.*?\\))"
 				       (wiki-scrape elem "Oxidation states")
 				       ""))))
+
+(defparameter *symbol-to-name* (make-hash-table))
+
+(defun get-name (symb)
+	   (gethash symb *symbol-to-name*))
+
+(defun put-nums (list)
+  (do ((lst list (cdr lst))
+       (acc))
+      ((endp lst)  (nreverse acc))
+    (push (car lst) acc)
+    (if (and (not (numberp (cadr lst))) (not (numberp (car lst))))
+	(push 1 acc))))
+
+(defun molecule-mass (expr)
+  "Takes a molecular formula written out like '(C 6 H 12 O 6) and calculates the molar mass"  
+  (let ((atoms (group (put-nums expr) 2)))
+    (loop for (elem amnt) in atoms sum
+	 (* (get-mass (get-name elem)) amnt))))

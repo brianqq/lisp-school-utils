@@ -47,8 +47,7 @@
   (let ((gensyms gensyms))
     (labels ((replace-helper (list)
 	       (cond ((atom list) list)
-		     ((e-fn-p list)
-		      (pop gensyms))
+		     ((e-fn-p list) (pop gensyms))
 		     (t (mapcar #'replace-helper list)))))
       (replace-helper code))))
 
@@ -72,10 +71,9 @@
 	`(lambda (,list &key
 		     (avg #'avg)
 		     (take #'identity)
-		     (put
-		      (lambda (_ x)
-			(declare (ignorable _))
-			x)))
+		     (put (lambda (_ x)
+			    (declare (ignorable _))
+			    x)))
 	   (let (,@(loop for x in elist
 		      for sym in gensyms collect
 			`(,sym (funcall ,x ,list
@@ -91,23 +89,18 @@
 		       (loop for ,name in ,list collect
 			    (funcall put ,name
 				     (let ((x? (funcall take ,name)))
-				       (declare (ignorable x?))
-				       ,@command))))
+				       (declare (ignorable x?))				       ,@command))))
 	      ,@(loop for sym in gensyms collect sym))))))))
 
 (defun variance (list &key
 			(avg #'avg)
 			(take #'identity)
-			(put
-			 (lambda (_ x)
-			   (declare (ignorable _))
-			   x)))
+			(put (lambda (_ x)
+			       (declare (ignorable _))
+			       x)))
   "Computes variance of `list`. `avg` is the function we use to calculate an average. `take` and `put` are used to change how we process list---take takes list and returns a value (for example `(cdr list)`) and put puts this value back into a data structure that we finally call `avg` on."
   (funcall (e (expt
 	       (- x? (e x?))
 	       2))
-	   list
-	   :avg avg
-	   :take take
-	   :put put))
+	   list :avg avg :take take :put put))
 
