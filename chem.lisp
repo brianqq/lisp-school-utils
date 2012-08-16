@@ -15,10 +15,10 @@
 
 (defmemo:defmemo get-mass (elem)
   "Scrapes wikipedia for the atomic mass of `elem`"
-    (read-from-string (wiki-scrape 'elem "Standard atomic weight")))
+    (read-from-string (wiki-scrape elem "Standard atomic weight")))
 
 (defmemo:defmemo get-oxstate (elem)
-  "Scrapes wikipedia for the "
+  "Scrapes wikipedia for the oxidation state of `elem`"
   (mapcar #'read-from-string
 	  (cl-ppcre:all-matches-as-strings
 	   "-?\\d+\\.?\\d*"
