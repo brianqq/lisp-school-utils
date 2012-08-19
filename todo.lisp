@@ -1,7 +1,8 @@
 (ql:quickload 'cl-ppcre)
+(ql:quickload 'trivial-timers)
 
 (defpackage #:todo
-  (:use :cl :cl-ppcre :qt)
+  (:use :cl :cl-ppcre :trivial-timers)
   (:export :*todo-location*
 	   :parse-org-text
 	   :time-now))
@@ -19,14 +20,14 @@
 
 (defun get-today ()
   "Opens today's todo file in *todo-location*/ddmmyyyy.org"
-  (with-open-file (todo (make-pathname :location *todo-location*
+  (with-open-file (todo (make-pathname :directory *todo-location*
 				       :name (today-string)
-				       :type ".org"))
+				       :type "org"))
     (slurp-stream todo)))
 
 (defun time-now ()
   (multiple-value-bind
-	(second minute hour) (get-decoded-time)
+	(_ minute hour) (get-decoded-time)
     (list hour minute)))
 
 ;;;see http://www.ymeme.com/slurping-a-file-common-lisp-83.html
@@ -35,17 +36,19 @@
     (read-sequence seq stream)
     seq))
 
+(defun interp-time (string)
+  (multiple-value-bind (_ time) (scan-to-strings "(\\d{1,2}):(\\d\\d)" string)
+    (destructuring-bind (hour min) (map 'list #'parse-integer time)
+      (+ (* 60 hour) min))))
+
 (defun parse-org-text (text)
  (let ((acc))
    (do-scans (start
 	      end reg-start reg-end
-	      "\\*\\sTODO\\s(.+?)\\n\\s+?SCHEDULED:\\s+?<(.+)>"
+	      "\\*\\sTODO\\s(.+?)\\n\\s+?(?!CLOSED)\\s+?SCHEDULED:\\s+?<(.+)>"
 	      text (nreverse acc))
      (push 
       (list (subseq text (aref reg-start 0) (aref reg-end 0))
-	    (multiple-value-bind (_ time)
-		(scan-to-strings "(\\d{1,2}):(\\d\\d)"
-				 (subseq text (aref reg-start 1)
-					 (aref reg-end 1)))
-	      (map 'list #'parse-integer time)))
+	    (interp-time  (subseq text (aref reg-start 1)
+				  (aref reg-end 1))))
       acc))))
