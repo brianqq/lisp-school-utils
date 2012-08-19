@@ -5,10 +5,18 @@
   (:use :cl :cl-ppcre :trivial-timers)
   (:export :*todo-location*
 	   :parse-org-text
-	   :time-now))
+	   :get-today))
 
 (in-package :todo)
 
+;;; http://cl-cookbook.sourceforge.net/functions.html
+(declaim (ftype (function (function &rest t) function) curry)
+	 (inline curry))
+(defun curry (function &rest args)
+  (lambda (&rest more-args)
+    (apply function (append args more-args))))
+
+;;; File processing
 (defvar *todo-location*)
 
 (defun today-string ()
@@ -25,11 +33,6 @@
 				       :type "org"))
     (slurp-stream todo)))
 
-(defun time-now ()
-  (multiple-value-bind
-	(_ minute hour) (get-decoded-time)
-    (list hour minute)))
-
 ;;;see http://www.ymeme.com/slurping-a-file-common-lisp-83.html
 (defun slurp-stream (stream)
   (let ((seq (make-string (file-length stream))))
@@ -38,8 +41,7 @@
 
 (defun interp-time (string)
   (multiple-value-bind (_ time) (scan-to-strings "(\\d{1,2}):(\\d\\d)" string)
-    (destructuring-bind (hour min) (map 'list #'parse-integer time)
-      (+ (* 60 hour) min))))
+    (map 'list #'parse-integer time)))
 
 (defun parse-org-text (text)
  (let ((acc))
@@ -52,3 +54,15 @@
 	    (interp-time  (subseq text (aref reg-start 1)
 				  (aref reg-end 1))))
       acc))))
+
+;;;File processing ends her
+
+(defun alert (x) (format t x))
+
+(defun make-timers (action-list)
+  (loop for (text (hour min)) in action-list do
+       (schedule-timer (make-timer (curry #'alert text))
+		       (multiple-value-bind (_s _m _h date month year)
+			   (get-decoded-time)
+			 (encode-universal-time 0 min hour date month year))
+		       :absolute-p t)))
