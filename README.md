@@ -8,8 +8,12 @@ This is a collection of utilities I am writing as I do my AP Chem and AP Statist
 #Chemistry
 `chem.lisp` contains utilities for scraping information about elements from their wikipedia pages.
 
+#Todo
+`todo.lisp` reads in .org files and sets timers that correspond to when events are scheduled. The timers bring up some sort of reminder, which is currently implemented as console output, but this will change.
+
 #Dependencies/thanks
 Quicklisp 
 CL-PPCRE
 Drakma
 defmemo
+trivial-timers
